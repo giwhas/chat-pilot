@@ -34,7 +34,12 @@ export function Login() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data);
+      // Ensure data conforms to LoginForm type by explicitly casting
+      const loginData = {
+        email: data.email,
+        password: data.password,
+      };
+      await login(loginData);
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
