@@ -8,7 +8,6 @@ import { Upload, FileText, Trash2, Download, Search } from 'lucide-react';
 import { useApiQuery, useApiMutation } from '@/hooks/useApi';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
-import { useToast } from '@/hooks/use-toast';
 
 interface KnowledgeDocument {
   id: string;
@@ -20,7 +19,6 @@ interface KnowledgeDocument {
 export function KnowledgeBase() {
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const { toast } = useToast();
 
   const { data: documents, isLoading } = useApiQuery<KnowledgeDocument[]>(
     ['knowledge-list'],
@@ -33,7 +31,8 @@ export function KnowledgeBase() {
   );
 
   const deleteMutation = useApiMutation<{ message: string }, void>(
-    `/api/knowledge/${''}`
+    '/api/knowledge/delete',
+    'DELETE'
   );
 
   const handleFileUpload = () => {
@@ -42,24 +41,17 @@ export function KnowledgeBase() {
     const formData = new FormData();
     formData.append('file', uploadFile);
     
-    uploadMutation.mutate(formData, {
-      onSuccess: () => {
-        setUploadFile(null);
-        // Reset file input
-        const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-      }
-    });
+    uploadMutation.mutate(formData);
+    setUploadFile(null);
+    
+    // Reset file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
   };
 
   const handleDeleteDocument = (documentId: string) => {
     if (window.confirm('Are you sure you want to delete this document?')) {
-      deleteMutation.mutate(undefined, {
-        mutationFn: async () => {
-          // Update endpoint with actual ID
-          return await deleteMutation.mutateAsync(undefined);
-        }
-      });
+      deleteMutation.mutate(undefined);
     }
   };
 
@@ -85,9 +77,9 @@ export function KnowledgeBase() {
     }
   };
 
-  const filteredDocuments = documents?.filter(doc => 
+  const filteredDocuments = (documents || []).filter(doc => 
     doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   if (isLoading) {
     return (

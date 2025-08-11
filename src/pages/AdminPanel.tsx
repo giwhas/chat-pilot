@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, Users, Search, MoreHorizontal, UserCheck, UserX } from 'lucide-react';
+import { Shield, Users, Search, UserCheck, UserX } from 'lucide-react';
 import { useApiQuery, useApiMutation } from '@/hooks/useApi';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -28,26 +28,20 @@ export function AdminPanel() {
   );
 
   const updateStatusMutation = useApiMutation<{ message: string }, { status: 'active' | 'suspended' }>(
-    '/api/admin/users/:id/status',
+    '/api/admin/users/status',
     'PUT'
   );
 
   const handleStatusChange = (userId: string, newStatus: 'active' | 'suspended') => {
-    updateStatusMutation.mutate({ status: newStatus }, {
-      mutationFn: async (data) => {
-        // In real implementation, replace :id with actual userId
-        const endpoint = `/api/admin/users/${userId}/status`;
-        return await updateStatusMutation.mutateAsync(data);
-      }
-    });
+    updateStatusMutation.mutate({ status: newStatus });
   };
 
-  const filteredUsers = users?.filter(user => {
+  const filteredUsers = (users || []).filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     return matchesSearch && matchesStatus;
-  }) || [];
+  });
 
   const getStatusColor = (status: string) => {
     return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
@@ -95,7 +89,7 @@ export function AdminPanel() {
               <UserCheck className="w-5 h-5 text-green-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {users?.filter(u => u.status === 'active').length || 0}
+                  {(users || []).filter(u => u.status === 'active').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Active Users</div>
               </div>
@@ -109,7 +103,7 @@ export function AdminPanel() {
               <UserX className="w-5 h-5 text-red-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {users?.filter(u => u.status === 'suspended').length || 0}
+                  {(users || []).filter(u => u.status === 'suspended').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Suspended</div>
               </div>
@@ -123,7 +117,7 @@ export function AdminPanel() {
               <Shield className="w-5 h-5 text-purple-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {users?.filter(u => u.role === 'admin').length || 0}
+                  {(users || []).filter(u => u.role === 'admin').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Admins</div>
               </div>
@@ -248,7 +242,7 @@ export function AdminPanel() {
             <Button variant="outline" className="h-20 flex-col">
               <div className="text-sm font-medium">Backup Data</div>
               <div className="text-xs text-muted-foreground">Create system backup</div>
-            </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

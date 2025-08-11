@@ -25,10 +25,10 @@ export function Messages() {
     '/api/whatsapp/messages'
   );
 
-  const filteredMessages = messages?.filter(message => 
+  const filteredMessages = (messages || []).filter(message => 
     message.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
     message.from.includes(searchTerm)
-  ) || [];
+  );
 
   const formatPhoneNumber = (phone: string) => {
     return phone.replace(/^\+/, '');

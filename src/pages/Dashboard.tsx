@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import {
   MessageSquare, 
   Bot, 
   Activity,
-  Users,
   Clock,
   TrendingUp
 } from 'lucide-react';
@@ -77,7 +76,7 @@ export function Dashboard() {
     }
   };
 
-  const activeProvider = apiProviders?.find(p => p.priority === 1);
+  const activeProvider = (apiProviders || []).find(p => p.priority === 1);
 
   return (
     <div className="p-6 space-y-6">
@@ -182,7 +181,7 @@ export function Dashboard() {
                   Refresh Status
                 </Button>
               </div>
-              {whatsappStatus.qrImageUrl && (
+              {whatsappStatus?.qrImageUrl && (
                 <div className="p-4 bg-white rounded-lg border">
                   <img 
                     src={whatsappStatus.qrImageUrl} 

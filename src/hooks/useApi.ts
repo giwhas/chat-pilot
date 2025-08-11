@@ -15,7 +15,7 @@ export const useApiQuery = <T>(
 ) => {
   const { toast } = useToast();
   
-  return useQuery({
+  return useQuery<T>({
     queryKey,
     queryFn: async (): Promise<T> => {
       if (USE_MOCK) {
@@ -44,13 +44,12 @@ export const useApiQuery = <T>(
 
 export const useApiMutation = <TData, TVariables>(
   endpoint: string,
-  method: 'POST' | 'PUT' | 'DELETE' = 'POST',
-  options?: any
+  method: 'POST' | 'PUT' | 'DELETE' = 'POST'
 ) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutation<TData, Error, TVariables>({
     mutationFn: async (data: TVariables): Promise<TData> => {
       if (USE_MOCK) {
         await mockDelay(800);
@@ -95,7 +94,6 @@ export const useApiMutation = <TData, TVariables>(
         description: error.message || 'Operation failed',
         variant: 'destructive'
       });
-    },
-    ...options
+    }
   });
 };

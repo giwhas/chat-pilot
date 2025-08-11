@@ -38,12 +38,7 @@ export function Profile() {
 
   const { data: profile, isLoading } = useApiQuery<UserProfile>(
     ['user-profile'],
-    '/api/user/profile',
-    {
-      onSuccess: (data: UserProfile) => {
-        setProfileData(data);
-      }
-    }
+    '/api/user/profile'
   );
 
   const updateProfileMutation = useApiMutation<{ message: string }, Omit<UserProfile, 'id'>>(
@@ -55,6 +50,16 @@ export function Profile() {
     '/api/user/change-password',
     'PUT'
   );
+
+  React.useEffect(() => {
+    if (profile) {
+      setProfileData({
+        id: profile.id || '',
+        name: profile.name || '',
+        email: profile.email || ''
+      });
+    }
+  }, [profile]);
 
   const handleUpdateProfile = () => {
     updateProfileMutation.mutate({
@@ -72,14 +77,12 @@ export function Profile() {
     changePasswordMutation.mutate({
       oldPassword: passwordData.oldPassword,
       newPassword: passwordData.newPassword
-    }, {
-      onSuccess: () => {
-        setPasswordData({
-          oldPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
-      }
+    });
+
+    setPasswordData({
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: ''
     });
   };
 

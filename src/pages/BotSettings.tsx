@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Bot, Save, RotateCcw } from 'lucide-react';
 import { useApiQuery, useApiMutation } from '@/hooks/useApi';
 import { Loading } from '@/components/ui/loading';
-import { EmptyState } from '@/components/ui/empty-state';
 
 interface BotSettings {
   promptTemplate: string;
@@ -43,18 +42,22 @@ export function BotSettings() {
 
   const { data: settings, isLoading } = useApiQuery<BotSettings>(
     ['bot-settings'],
-    '/api/settings/bot',
-    {
-      onSuccess: (data: BotSettings) => {
-        setFormData(data);
-      }
-    }
+    '/api/settings/bot'
   );
 
   const saveMutation = useApiMutation<{ message: string }, BotSettings>(
     '/api/settings/bot',
     'POST'
   );
+
+  React.useEffect(() => {
+    if (settings) {
+      setFormData({
+        promptTemplate: settings.promptTemplate || '',
+        language: settings.language || 'id'
+      });
+    }
+  }, [settings]);
 
   const handleSave = () => {
     saveMutation.mutate(formData);
