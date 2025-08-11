@@ -12,38 +12,55 @@ import {
   Clock,
   TrendingUp
 } from 'lucide-react';
-import { useDashboardStore } from '@/store/dashboardStore';
+import { useApiQuery } from '@/hooks/useApi';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 
-export function Dashboard() {
-  const { 
-    whatsapp, 
-    messages, 
-    aiSettings, 
-    isLoading, 
-    error,
-    fetchStatus,
-    fetchMessages,
-    fetchAISettings
-  } = useDashboardStore();
+interface WhatsAppStatus {
+  status: 'connected' | 'disconnected' | 'qr';
+  qrImageUrl?: string;
+}
 
-  useEffect(() => {
-    fetchStatus();
-    fetchMessages();
-    fetchAISettings();
-  }, [fetchStatus, fetchMessages, fetchAISettings]);
+interface WhatsAppMessage {
+  id: string;
+  from: string;
+  to: string;
+  text: string;
+  timestamp: string;
+}
+
+interface ApiProvider {
+  provider: string;
+  apiKey: string;
+  priority: number;
+}
+
+export function Dashboard() {
+  const { data: whatsappStatus, isLoading: statusLoading, refetch: refetchStatus } = useApiQuery<WhatsAppStatus>(
+    ['whatsapp-status'],
+    '/api/whatsapp/status'
+  );
+
+  const { data: messages, isLoading: messagesLoading } = useApiQuery<WhatsAppMessage[]>(
+    ['whatsapp-messages'],
+    '/api/whatsapp/messages'
+  );
+
+  const { data: apiProviders } = useApiQuery<ApiProvider[]>(
+    ['api-settings'],
+    '/api/settings/api'
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'connected':
-        return 'status-connected';
-      case 'qr_needed':
-        return 'status-pending';
+        return 'bg-green-100 text-green-800';
+      case 'qr':
+        return 'bg-yellow-100 text-yellow-800';
       case 'disconnected':
-        return 'status-disconnected';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'status-disconnected';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -51,7 +68,7 @@ export function Dashboard() {
     switch (status) {
       case 'connected':
         return 'Connected';
-      case 'qr_needed':
+      case 'qr':
         return 'QR Code Required';
       case 'disconnected':
         return 'Disconnected';
@@ -60,24 +77,7 @@ export function Dashboard() {
     }
   };
 
-  if (error) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          title="Error loading dashboard"
-          description={error}
-          action={{
-            label: 'Retry',
-            onClick: () => {
-              fetchStatus();
-              fetchMessages();
-              fetchAISettings();
-            }
-          }}
-        />
-      </div>
-    );
-  }
+  const activeProvider = apiProviders?.find(p => p.priority === 1);
 
   return (
     <div className="p-6 space-y-6">
@@ -101,15 +101,14 @@ export function Dashboard() {
             <Smartphone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2">
-              <Badge className={getStatusColor(whatsapp.status)}>
-                {getStatusText(whatsapp.status)}
-              </Badge>
-            </div>
-            {whatsapp.lastConnected && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Last connected: {new Date(whatsapp.lastConnected).toLocaleString()}
-              </p>
+            {statusLoading ? (
+              <Loading size="sm" />
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Badge className={getStatusColor(whatsappStatus?.status || 'disconnected')}>
+                  {getStatusText(whatsappStatus?.status || 'disconnected')}
+                </Badge>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -120,11 +119,17 @@ export function Dashboard() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{messages.length}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline w-3 h-3 mr-1" />
-              +12% from yesterday
-            </p>
+            {messagesLoading ? (
+              <Loading size="sm" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{messages?.length || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  <TrendingUp className="inline w-3 h-3 mr-1" />
+                  +12% from yesterday
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -135,10 +140,10 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-lg font-semibold">
-              {aiSettings?.providers.find(p => p.isActive)?.name || 'Not configured'}
+              {activeProvider?.provider || 'Not configured'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {aiSettings?.defaultModel || 'No model selected'}
+              Primary provider
             </p>
           </CardContent>
         </Card>
@@ -158,7 +163,7 @@ export function Dashboard() {
       </div>
 
       {/* QR Code Section */}
-      {whatsapp.status === 'qr_needed' && (
+      {whatsappStatus?.status === 'qr' && (
         <Card className="dashboard-card border-warning/20 bg-warning/5">
           <CardHeader>
             <CardTitle className="text-warning">QR Code Required</CardTitle>
@@ -170,17 +175,17 @@ export function Dashboard() {
                   Scan this QR code with your WhatsApp to connect your account.
                 </p>
                 <Button 
-                  onClick={fetchStatus}
+                  onClick={() => refetchStatus()}
                   variant="outline"
                   size="sm"
                 >
                   Refresh Status
                 </Button>
               </div>
-              {whatsapp.qrCode && (
+              {whatsappStatus.qrImageUrl && (
                 <div className="p-4 bg-white rounded-lg border">
                   <img 
-                    src={whatsapp.qrCode} 
+                    src={whatsappStatus.qrImageUrl} 
                     alt="WhatsApp QR Code"
                     className="w-48 h-48"
                   />
@@ -201,9 +206,9 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {messagesLoading ? (
               <Loading text="Loading messages..." />
-            ) : messages.length > 0 ? (
+            ) : messages && messages.length > 0 ? (
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {messages.slice(0, 10).map((message) => (
                   <div key={message.id} className="border-l-2 border-primary/20 pl-4 py-2">
@@ -213,20 +218,12 @@ export function Dashboard() {
                         {new Date(message.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {message.message.length > 100 
-                        ? message.message.substring(0, 100) + '...'
-                        : message.message
+                    <p className="text-sm text-muted-foreground">
+                      {message.text.length > 100 
+                        ? message.text.substring(0, 100) + '...'
+                        : message.text
                       }
                     </p>
-                    {message.response && (
-                      <div className="bg-primary/5 p-2 rounded text-xs">
-                        <strong>AI Response:</strong> {message.response.length > 80 
-                          ? message.response.substring(0, 80) + '...'
-                          : message.response
-                        }
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -251,7 +248,7 @@ export function Dashboard() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm">Success Rate</span>
-                <span className="font-semibold text-success">98.5%</span>
+                <span className="font-semibold text-green-600">98.5%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Average Response Time</span>
@@ -259,12 +256,12 @@ export function Dashboard() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Messages Processed</span>
-                <span className="font-semibold">{messages.length}</span>
+                <span className="font-semibold">{messages?.length || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Active Provider</span>
                 <span className="font-semibold text-primary">
-                  {aiSettings?.providers.find(p => p.isActive)?.name || 'None'}
+                  {activeProvider?.provider || 'None'}
                 </span>
               </div>
             </div>
