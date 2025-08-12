@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +28,7 @@ export function AdminPanel() {
   );
 
   const updateStatusMutation = useApiMutation<{ message: string }, { userId: string; status: 'active' | 'suspended' }>(
-    (data: { userId: string; status: 'active' | 'suspended' }) => 
-      `/api/admin/users/${data.userId}/status`,
+    '/api/admin/users/:id/status',
     'PUT'
   );
 
