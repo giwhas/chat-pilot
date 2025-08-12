@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuthState, User, LoginForm, RegisterForm } from '@/types';
@@ -49,12 +48,29 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             }
             
             const mockResponse = mockApiResponses['POST /api/auth/login'];
-            const { user, token } = mockResponse;
+            const { token } = mockResponse;
             
-            // Set user role based on which credentials were used
-            const userWithRole = isValidAdmin 
-              ? { ...user, role: 'admin' }
-              : { ...user, role: 'user', name: 'User Account', email: credentials.email };
+            // Create complete user object with all required properties
+            const currentDate = new Date().toISOString();
+            const userWithRole: User = isValidAdmin 
+              ? { 
+                  id: '1',
+                  name: 'Admin User',
+                  email: credentials.email,
+                  role: 'admin' as const,
+                  isActive: true,
+                  createdAt: currentDate,
+                  updatedAt: currentDate
+                }
+              : { 
+                  id: '2',
+                  name: 'User Account',
+                  email: credentials.email,
+                  role: 'user' as const,
+                  isActive: true,
+                  createdAt: currentDate,
+                  updatedAt: currentDate
+                };
             
             localStorage.setItem('auth_token', token);
             set({
@@ -86,8 +102,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           if (USE_MOCK) {
             await mockDelay(800);
             const mockResponse = mockApiResponses['POST /api/auth/register'];
-            // In a real app, this would return user and token
-            const user = { id: '2', name: userData.name, email: userData.email, role: 'user' };
+            
+            // Create complete user object with all required properties
+            const currentDate = new Date().toISOString();
+            const user: User = { 
+              id: '2', 
+              name: userData.name, 
+              email: userData.email, 
+              role: 'user' as const,
+              isActive: true,
+              createdAt: currentDate,
+              updatedAt: currentDate
+            };
             const token = 'mock-jwt-token-new-user';
             
             localStorage.setItem('auth_token', token);
