@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuthState, User, LoginForm, RegisterForm } from '@/types';
@@ -28,9 +27,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       // Actions
       login: async (credentials: LoginForm) => {
+        console.log('Login attempt with credentials:', credentials);
         set({ isLoading: true, error: null });
         try {
+          console.log('Making API call to:', API_CONFIG.ENDPOINTS.LOGIN);
           const response = await apiClient.post(API_CONFIG.ENDPOINTS.LOGIN, credentials);
+          console.log('API response:', response.data);
+          
           const { user, token } = response.data.data;
           
           localStorage.setItem('auth_token', token);
@@ -41,7 +44,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             isLoading: false,
             error: null
           });
+          console.log('Login successful, user set:', user);
         } catch (error: any) {
+          console.error('Login error:', error);
+          console.error('Error response:', error.response?.data);
           set({
             isLoading: false,
             error: error.response?.data?.message || 'Login failed'
