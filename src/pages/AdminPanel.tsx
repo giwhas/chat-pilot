@@ -9,6 +9,7 @@ import { Shield, Users, Search, UserCheck, UserX } from 'lucide-react';
 import { useApiQuery, useApiMutation } from '@/hooks/useApi';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
+import { toast } from '@/hooks/use-toast';
 
 interface AdminUser {
   id: string;
@@ -27,16 +28,36 @@ export function AdminPanel() {
     '/api/admin/users'
   );
 
-  const updateStatusMutation = useApiMutation<{ message: string }, { status: 'active' | 'suspended' }>(
-    '/api/admin/users/status',
+  const updateStatusMutation = useApiMutation<{ message: string }>(
+    (data: { userId: string; status: 'active' | 'suspended' }) => 
+      `/api/admin/users/${data.userId}/status`,
     'PUT'
   );
 
   const handleStatusChange = (userId: string, newStatus: 'active' | 'suspended') => {
-    updateStatusMutation.mutate({ status: newStatus });
+    updateStatusMutation.mutate(
+      { userId, status: newStatus },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: `User status updated to ${newStatus}`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to update user status",
+            variant: "destructive",
+          });
+        }
+      }
+    );
   };
 
-  const filteredUsers = (users || []).filter(user => {
+  const usersData = users as AdminUser[] || [];
+  
+  const filteredUsers = usersData.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
@@ -76,7 +97,7 @@ export function AdminPanel() {
             <div className="flex items-center space-x-2">
               <Users className="w-5 h-5 text-blue-600" />
               <div>
-                <div className="text-2xl font-bold">{users?.length || 0}</div>
+                <div className="text-2xl font-bold">{usersData.length || 0}</div>
                 <div className="text-sm text-muted-foreground">Total Users</div>
               </div>
             </div>
@@ -89,7 +110,7 @@ export function AdminPanel() {
               <UserCheck className="w-5 h-5 text-green-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {(users || []).filter(u => u.status === 'active').length}
+                  {usersData.filter(u => u.status === 'active').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Active Users</div>
               </div>
@@ -103,7 +124,7 @@ export function AdminPanel() {
               <UserX className="w-5 h-5 text-red-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {(users || []).filter(u => u.status === 'suspended').length}
+                  {usersData.filter(u => u.status === 'suspended').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Suspended</div>
               </div>
@@ -117,7 +138,7 @@ export function AdminPanel() {
               <Shield className="w-5 h-5 text-purple-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {(users || []).filter(u => u.role === 'admin').length}
+                  {usersData.filter(u => u.role === 'admin').length}
                 </div>
                 <div className="text-sm text-muted-foreground">Admins</div>
               </div>
@@ -206,7 +227,7 @@ export function AdminPanel() {
                 </div>
               ))}
             </div>
-          ) : users && users.length > 0 ? (
+          ) : usersData && usersData.length > 0 ? (
             <EmptyState
               title="No users found"
               description="No users match your search criteria."
@@ -242,7 +263,7 @@ export function AdminPanel() {
             <Button variant="outline" className="h-20 flex-col">
               <div className="text-sm font-medium">Backup Data</div>
               <div className="text-xs text-muted-foreground">Create system backup</div>
-            </div>
+            </Button>
           </div>
         </CardContent>
       </Card>
