@@ -28,7 +28,7 @@ export function AdminPanel() {
     '/api/admin/users'
   );
 
-  const updateStatusMutation = useApiMutation<{ message: string }>(
+  const updateStatusMutation = useApiMutation<{ message: string }, { userId: string; status: 'active' | 'suspended' }>(
     (data: { userId: string; status: 'active' | 'suspended' }) => 
       `/api/admin/users/${data.userId}/status`,
     'PUT'
