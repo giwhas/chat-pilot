@@ -4,7 +4,7 @@ export const mockApiResponses = {
   // Auth endpoints
   'POST /api/auth/login': {
     token: 'mock-jwt-token-12345',
-    user: { id: '1', name: 'John Doe', email: 'john@example.com', role: 'admin' }
+    user: { id: '1', name: 'Admin User', email: 'admin@example.com', role: 'admin' }
   },
   
   'POST /api/auth/register': {
@@ -17,8 +17,8 @@ export const mockApiResponses = {
   
   'GET /api/auth/me': {
     id: '1',
-    name: 'John Doe', 
-    email: 'john@example.com',
+    name: 'Admin User', 
+    email: 'admin@example.com',
     role: 'admin'
   },
 
@@ -94,6 +94,18 @@ export const mockApiResponses = {
   
   'PUT /api/admin/users/:id/status': {
     message: 'status updated'
+  }
+};
+
+// Default credentials for testing
+export const DEFAULT_CREDENTIALS = {
+  admin: {
+    email: 'admin@example.com',
+    password: 'admin123'
+  },
+  user: {
+    email: 'user@example.com', 
+    password: 'user123'
   }
 };
 
