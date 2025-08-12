@@ -1,8 +1,8 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuthState, User, LoginForm, RegisterForm } from '@/types';
-import { apiClient } from '@/lib/apiClient';
-import { API_CONFIG } from '@/config/api';
+import { mockApiResponses, mockDelay, DEFAULT_CREDENTIALS } from '@/mock/api';
 
 interface AuthActions {
   login: (credentials: LoginForm) => Promise<void>;
@@ -14,6 +14,9 @@ interface AuthActions {
   setError: (error: string | null) => void;
   clearError: () => void;
 }
+
+// Mock mode flag - set to true to use mock data
+const USE_MOCK = true;
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
@@ -29,28 +32,49 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       login: async (credentials: LoginForm) => {
         console.log('Login attempt with credentials:', credentials);
         set({ isLoading: true, error: null });
+        
         try {
-          console.log('Making API call to:', API_CONFIG.ENDPOINTS.LOGIN);
-          const response = await apiClient.post(API_CONFIG.ENDPOINTS.LOGIN, credentials);
-          console.log('API response:', response.data);
-          
-          const { user, token } = response.data.data;
-          
-          localStorage.setItem('auth_token', token);
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          console.log('Login successful, user set:', user);
+          if (USE_MOCK) {
+            console.log('Using mock authentication');
+            await mockDelay(800);
+            
+            // Validate credentials against default credentials
+            const isValidAdmin = credentials.email === DEFAULT_CREDENTIALS.admin.email && 
+                                credentials.password === DEFAULT_CREDENTIALS.admin.password;
+            const isValidUser = credentials.email === DEFAULT_CREDENTIALS.user.email && 
+                               credentials.password === DEFAULT_CREDENTIALS.user.password;
+            
+            if (!isValidAdmin && !isValidUser) {
+              throw new Error('Invalid credentials');
+            }
+            
+            const mockResponse = mockApiResponses['POST /api/auth/login'];
+            const { user, token } = mockResponse;
+            
+            // Set user role based on which credentials were used
+            const userWithRole = isValidAdmin 
+              ? { ...user, role: 'admin' }
+              : { ...user, role: 'user', name: 'User Account', email: credentials.email };
+            
+            localStorage.setItem('auth_token', token);
+            set({
+              user: userWithRole,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null
+            });
+            console.log('Login successful, user set:', userWithRole);
+          } else {
+            // Real API call would go here
+            console.log('Making API call to:', '/api/auth/login');
+            throw new Error('Real API not implemented');
+          }
         } catch (error: any) {
           console.error('Login error:', error);
-          console.error('Error response:', error.response?.data);
           set({
             isLoading: false,
-            error: error.response?.data?.message || 'Login failed'
+            error: error.message || 'Login failed'
           });
           throw error;
         }
@@ -59,21 +83,28 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       register: async (userData: RegisterForm) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await apiClient.post(API_CONFIG.ENDPOINTS.REGISTER, userData);
-          const { user, token } = response.data.data;
-          
-          localStorage.setItem('auth_token', token);
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
+          if (USE_MOCK) {
+            await mockDelay(800);
+            const mockResponse = mockApiResponses['POST /api/auth/register'];
+            // In a real app, this would return user and token
+            const user = { id: '2', name: userData.name, email: userData.email, role: 'user' };
+            const token = 'mock-jwt-token-new-user';
+            
+            localStorage.setItem('auth_token', token);
+            set({
+              user,
+              token,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null
+            });
+          } else {
+            throw new Error('Real API not implemented');
+          }
         } catch (error: any) {
           set({
             isLoading: false,
-            error: error.response?.data?.message || 'Registration failed'
+            error: error.message || 'Registration failed'
           });
           throw error;
         }
@@ -92,12 +123,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       resetPassword: async (email: string) => {
         set({ isLoading: true, error: null });
         try {
-          await apiClient.post(API_CONFIG.ENDPOINTS.RESET_PASSWORD, { email });
-          set({ isLoading: false });
+          if (USE_MOCK) {
+            await mockDelay(800);
+            const mockResponse = mockApiResponses['POST /api/auth/reset-password'];
+            set({ isLoading: false });
+          } else {
+            throw new Error('Real API not implemented');
+          }
         } catch (error: any) {
           set({
             isLoading: false,
-            error: error.response?.data?.message || 'Reset password failed'
+            error: error.message || 'Reset password failed'
           });
           throw error;
         }
